@@ -131,10 +131,10 @@ vector<vector<int>> crossover(vector<vector<int>> population_chromosomes)
 
 vector<vector<int>> mutation(vector<vector<int>> population_chromosomes)
 {
-    int prob_mutation = rand() % 10;
 
     for (int i = 0; i < population_chromosomes.size(); i++)
     {
+        int prob_mutation = rand() % 10;
         int external_player_index = rand() % 100;
         population_chromosomes[i][prob_mutation] = external_player_index;
     }
@@ -159,7 +159,7 @@ int global_best(vector<vector<int>> population_chromosomes)
 
 int main()
 {
-    int generations = 0, curr = 0;
+    int generations = 0, curr = 0, first = 0;
     cout << "Enter number of generations: ";
     cin >> generations;
 
@@ -197,7 +197,12 @@ int main()
         population_chromosomes = crossover(population_chromosomes);
         population_chromosomes = calculate_fitness(population_chromosomes, skill_weight, cost_weight, demog_weight);
 
-        // mutation operation on the parents - single point mutation
+        if (curr == 0)
+        {
+            first = population_chromosomes[0][11];
+        }
+
+        // mutation operation on the parents - bit flip mutation
         population_chromosomes = mutation(population_chromosomes);
         population_chromosomes = calculate_fitness(population_chromosomes, skill_weight, cost_weight, demog_weight);
 
@@ -220,6 +225,8 @@ int main()
 
         curr++;
     }
+
+    cout << "First Population Best: " << first << endl;
 
     // obtain the population of chromosomes
     return 0;
