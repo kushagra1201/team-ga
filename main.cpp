@@ -43,6 +43,22 @@ void generate_cost()
     return;
 }
 
+int calculate_variance(vector<int> v)
+{
+    double sum = accumulate(begin(v), end(v), 0);
+    double m = sum / v.size();
+
+    double accum = 0;
+    for_each(begin(v), end(v), [&](const double d)
+             { accum += (d - m) * (d - m); });
+
+    double stdev = sqrt(accum / (v.size() - 1));
+
+    int var = pow(stdev, 2);
+
+    return (var * 100) / 40;
+}
+
 vector<vector<int>> generate_chromosomes()
 {
     // generate random population (chromosomes)
@@ -60,21 +76,28 @@ vector<vector<int>> generate_chromosomes()
     return chromosomes;
 }
 
-vector<vector<int>> calculate_fitness(vector<vector<int>> population_chromosomes)
+vector<vector<int>> calculate_fitness(vector<vector<int>> population_chromosomes, double skill_weight, double cost_weight, double demog_weight)
 {
 
     int skills_sum = 0, demog_sum = 0, cost_sum = 0;
 
+    skill_weight /= 100;
+    cost_weight /= 100;
+    demog_weight /= 100;
+
     for (int i = 0; i < population_chromosomes.size(); i++)
     {
+        vector<int> v;
         for (int j = 0; j < population_chromosomes[0].size() - 1; j++)
         {
             skills_sum += global_skills[population_chromosomes[i][j]];
-            demog_sum += global_demog[population_chromosomes[i][j]];
             cost_sum += global_cost[population_chromosomes[i][j]];
+            v.push_back(global_demog[population_chromosomes[i][j]]);
         }
+        int variance_demog = (calculate_variance(v) * 40) / 100;
+        int cost_effectiveness = (cost_sum * 100) / skills_sum;
 
-        population_chromosomes[i][11] = (0.5 * skills_sum) + (0.1 * demog_sum) + (0.4 * cost_sum);
+        population_chromosomes[i][11] = (double)(skill_weight * (skills_sum / 110)) + (double)(demog_weight * variance_demog) + (double)(cost_weight * (cost_effectiveness));
     }
 
     return population_chromosomes;
@@ -146,9 +169,25 @@ int main()
     generate_demog();
     vector<vector<int>> population_chromosomes = generate_chromosomes();
 
+    cout << "Population of Players: " << endl;
+    for (int i = 0; i < 100; i++)
+    {
+        cout << "Player No. " << i + 1 << " - " << global_skills[i] << " " << global_demog[i] << " " << global_cost[i] << endl;
+    }
+
+    int skill_weight = 0, cost_weight = 0, demog_weight = 0;
+    cout << "Enter Skill Weight: ";
+    cin >> skill_weight;
+    cout << "Enter Demographic Weight: ";
+    cin >> demog_weight;
+    cout << "Enter Cost Weight: ";
+    cin >> cost_weight;
+
+    cout << endl;
+
     while (curr < generations)
     {
-        population_chromosomes = calculate_fitness(population_chromosomes);
+        population_chromosomes = calculate_fitness(population_chromosomes, skill_weight, cost_weight, demog_weight);
 
         // selection operation on the given population
         population_chromosomes = selection(population_chromosomes);
@@ -156,11 +195,11 @@ int main()
 
         // crossover operation on the parents - single point crossover
         population_chromosomes = crossover(population_chromosomes);
-        population_chromosomes = calculate_fitness(population_chromosomes);
+        population_chromosomes = calculate_fitness(population_chromosomes, skill_weight, cost_weight, demog_weight);
 
         // mutation operation on the parents - single point mutation
         population_chromosomes = mutation(population_chromosomes);
-        population_chromosomes = calculate_fitness(population_chromosomes);
+        population_chromosomes = calculate_fitness(population_chromosomes, skill_weight, cost_weight, demog_weight);
 
         // reproduction of population with better chromosomes
         // population_chromosomes = reproduction(population_chromosomes);
@@ -176,7 +215,8 @@ int main()
         }
         cout << endl;
 
-        cout << global_best(population_chromosomes) << endl;
+        cout << "Generation Best: " << global_best(population_chromosomes) << endl
+             << endl;
 
         curr++;
     }
